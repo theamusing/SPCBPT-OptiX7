@@ -10,8 +10,8 @@
 #include "cuProg.h"
 #include "rmis.h"
 
-#define PT_BRDF_STRATEGY_ONLY
-//#define PT_NEE_STRATEGY_ONLY
+//#define PT_BRDF_STRATEGY_ONLY
+//#define PT_NEE_STRATEGY_ONLY    //
 
 extern "C" __global__ void __anyhit__radiance()
 {
@@ -21,7 +21,7 @@ extern "C" __global__ void __anyhit__radiance()
     if (hit_group_data->material_data.pbr.base_color_tex)
     {
         const LocalGeometry geom = getLocalGeometry(hit_group_data->geometry_data);
-        const float         base_alpha = sampleTexture<float4>(hit_group_data->material_data.pbr.base_color_tex, geom).w;
+        const float base_alpha = sampleTexture<float4>(hit_group_data->material_data.pbr.base_color_tex, geom).w;
         // force mask mode, even for blend mode, as we don't do recursive traversal.
         if (base_alpha < hit_group_data->material_data.alpha_cutoff)
             optixIgnoreIntersection();

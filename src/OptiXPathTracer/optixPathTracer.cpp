@@ -91,7 +91,13 @@ int32_t mouse_button = -1;
 int32_t samples_per_launch = 1; 
 
 std::vector< std::string> render_alg = { std::string("pt"), std::string("SPCBPT_eye")};
+
+#ifdef RENDER_PT
 int render_alg_id = 0;
+#else
+int render_alg_id = 1;
+#endif
+
 bool one_frame_render_only = false;
 float render_fps = 60;
 //------------------------------------------------------------------------------
@@ -193,7 +199,7 @@ void img_save()
 
     auto p = MyThrustOp::copy_to_host(params.accum_buffer, params.height * params.width);
     std::ofstream outFile;
-    outFile.open("./standard.txt");
+    outFile.open("./standard.txt");// modify
 
     outFile << params.width << " " << params.height << std::endl;
     for (int i = 0; i < params.width * params.height; i++)
@@ -775,9 +781,12 @@ int main( int argc, char* argv[] )
 
     try
     {
-//        string scenePath = string(SAMPLES_DIR) + string("/data/house/house_uvrefine2.scene"); 
+//        string scenePath = string(SAMPLES_DIR) + "/data/" + string(SCENE_NAME) + "/" + string(SCENE_NAME) + ".scene";
+        string scenePath = string(SAMPLES_DIR) + string("/data/house/house_uvrefine2.scene"); 
 //         string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_icoBall.scene");
-         string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_refract.scene");
+//         string scenePath = string(SAMPLES_DIR) + string("/data/livingroom/livingroom.scene");
+//        string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_refract.scene");
+//         string scenePath = string(SAMPLES_DIR) + string("/data/water/simple.scene");
 //         string scenePath = string(SAMPLES_DIR) + string("/data/glossy_kitchen/glossy_kitchen.scene");
 //        string scenePath = string(SAMPLES_DIR) + string("/data/glassroom/glassroom_simple.scene");
 //        string scenePath = string(SAMPLES_DIR) + string("/data/hallway/hallway_env2.scene");
@@ -844,7 +853,7 @@ int main( int argc, char* argv[] )
                 std::chrono::duration<double> state_update_time(0.0);
                 std::chrono::duration<double> render_time(0.0);
                 std::chrono::duration<double> display_time(0.0);
-
+                float render_time_duration = 0;
                 do
                 {
                     auto t0 = std::chrono::steady_clock::now();
@@ -852,7 +861,7 @@ int main( int argc, char* argv[] )
 
                     updateState(output_buffer, params);
                     auto t1 = std::chrono::steady_clock::now();
-                    state_update_time += t1 - t0;
+                    state_update_time = t1 - t0;
                     t0 = t1;
 
                     if(render_alg[render_alg_id] == std::string("SPCBPT_eye"))
@@ -860,26 +869,39 @@ int main( int argc, char* argv[] )
 
                     launchSubframe(output_buffer, TScene);
                     t1 = std::chrono::steady_clock::now();
-                    render_time += t1 - t0;
+                    render_time = t1 - t0;
+                    render_time_duration += render_time.count();
                     t0 = t1;                    
                     
-
-
-
                     displaySubframe(output_buffer, gl_display, window);
                     t1 = std::chrono::steady_clock::now();
-                    display_time += t1 - t0;
+                    display_time = t1 - t0;
 
                     sutil::displayStats(state_update_time, render_time, display_time);
                     render_fps = 1.0 / (display_time.count() + render_time.count() + state_update_time.count()); 
-
+                    printf("render_fps %f\n", render_fps);
                     glfwSwapBuffers(window);
 
-                    estimation::es.estimation_mode = false;
+                    if (SCREENCAPTURE_SAVE_MODE)
+                    {
+                        sutil::ImageBuffer outputbuffer;
+
+                        auto host_buffer = MyThrustOp::copy_to_host(params.frame_buffer, params.height * params.width);
+                        outputbuffer.data = host_buffer.data();
+                        outputbuffer.width = params.width;
+                        outputbuffer.height = params.height;
+                        outputbuffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                        string path = estimation::es_info.scene + "/" + estimation::es_info.algorithm + "/" + to_string(params.subframe_index) + "_true.png";
+                        sutil::saveImage(path.c_str(), outputbuffer, true);
+                    }
+
+                    estimation::es.estimation_mode = ESTIMATION_MODE;
                     if (estimation::es.estimation_mode == true)
                     {
-                        float error = estimation::es.relMse_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
-                        printf("frame %d relMse %f\n", params.subframe_index, error); 
+                        float relMse = estimation::es.relMse_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
+                        float Mae = estimation::es.Mae_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
+                        float Mape = estimation::es.Mape_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
+                        estimation::es_info.add(params.subframe_index,render_time_duration, relMse, Mae, Mape);
                     }
                     else
                     {

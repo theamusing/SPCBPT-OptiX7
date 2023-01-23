@@ -1,0 +1,12 @@
+# Blender v3.1.2 OBJ File: 'livingroom.blend1'
+# www.blender.org
+mtllib _unnamed_90.mtl
+o _unnamed_90
+v 1.174843 1.124883 0.507193
+v 1.736837 1.124883 0.810679
+v 1.174843 2.806957 0.507193
+v 1.736837 2.806957 0.810679
+vn -0.4752 -0.0000 0.8799
+usemtl _unnamed_91
+s off
+f 1//1 2//1 4//1 3//1

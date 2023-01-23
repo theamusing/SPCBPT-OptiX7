@@ -943,7 +943,7 @@ RT_FUNCTION float3 Eval_Transmit(const MaterialData::Pbr& mat, const float3& nor
     if (dot(L, wh) * dot(V, wh) > 0) return make_float3(0);
 
     float sqrtDenom = dot(L, wh) + eta * dot(V, wh);
-    float factor = 1 / eta;
+    float factor = 1;// modify
     float3 T = mat.trans * make_float3(sqrt(mat.base_color.x), sqrt(mat.base_color.y), sqrt(mat.base_color.z));
     //printf("%f\n", mat.trans);
     float roughg = sqr(mat.roughness * 0.5f + 0.5f);
@@ -953,15 +953,31 @@ RT_FUNCTION float3 Eval_Transmit(const MaterialData::Pbr& mat, const float3& nor
     //GTR2(dot(wh,N), a);
     float FH = SchlickFresnel(dot(V, wh));
     float3 Fs = lerp(Cspec0, make_float3(1.0f), FH);
-    float F = fresnel(abs(dot(L, wh)), abs(dot(V, wh)), eta);
+    //float F = fresnel(abs(dot(V, wh)), abs(dot(L, wh)), eta);
+    
+    float F = 1;
+    float cosI = abs(NDotV);
+    float sin2T = (1 - NDotV * NDotV) * eta * eta;
+
+    if (sin2T <= 1)
+    {
+        float cosT = sqrt(1 - sin2T);
+        F = fresnel(cosI, cosT, eta);
+    }
+    
     //printf("Fresnel: %f\n", F);
-    float3 out = (1.f - refract) * (1.f - F) * T *
+    float3 out =  (1 - refract) * (1.f - F) * T *
         std::abs(Ds * Gs * eta * eta *
             abs(dot(L, wh)) * abs(dot(V, wh)) * factor * factor /
-            (NDotL * NDotL * sqrtDenom * sqrtDenom));
+            (NDotV * NDotL * sqrtDenom * sqrtDenom));
+    /*
+    if (isRefract(N, V, L))
+    {
+        out *= eta * eta;
+    }
+    */
     //if(out.x!=0)
     //    printf("trans: %f,%f,%f\n", out.x, out.y, out.z);
-
 
     return out;
 
@@ -985,14 +1001,16 @@ RT_FUNCTION float3 Eval(const MaterialData::Pbr& mat, const float3& normal, cons
         NDotL *= -1;
         NDotV *= -1;
     }
+    float3 H = normalize(L + V);
+    float NDotH = dot(N, H);
+    float LDotH = dot(L, H);
+    float VDotH = dot(V, H);
+
     float refract;
     if ((1 - NDotV * NDotV) * eta * eta >= 1)// 全反射
         refract = 1;
     else
         refract = 0;
-    float3 H = normalize(L + V);
-    float NDotH = dot(N, H);
-    float LDotH = dot(L, H);
 
     float3 Cdlin = make_float3(mat.base_color);
     float Cdlum = 0.3f * Cdlin.x + 0.6f * Cdlin.y + 0.1f * Cdlin.z; // luminance approx.
@@ -1036,10 +1054,28 @@ RT_FUNCTION float3 Eval(const MaterialData::Pbr& mat, const float3& normal, cons
     float Gr = smithG_GGX(NDotL, 0.25f) * smithG_GGX(NDotV, 0.25f);
 
     float trans = mat.trans;
-    float F = fresnel(abs(LDotH), abs(NDotH), mateta);
-    float3 out = ((1.0f / M_PIf) * lerp(Fd, ss, mat.subsurface) * Cdlin + Fsheen)
-        * (1.0f - mat.metallic) * (1 - trans * (1 - F) * (1 - refract))
-        + Gs * Fs * Ds + 0.25f * mat.clearcoat * Gr * Fr * Dr;
+
+    float cosThetaI = abs(dot(N, V));
+    float sin2ThetaI = 1 - cosThetaI * cosThetaI;
+    float sin2ThetaT = eta * eta * sin2ThetaI;
+    float cosThetaT = 1;
+    if (sin2ThetaT <= 1)
+    {
+        cosThetaT = sqrt(1 - sin2ThetaT);
+    }
+    float F = fresnel(cosThetaI, cosThetaT,eta);
+
+    float3 out = (((1.0f / M_PIf) * lerp(Fd, ss, mat.subsurface) * Cdlin + Fsheen)
+        * (1.0f - mat.metallic))
+        * (1 - trans * (1-F) *(1 - refract))
+        ;
+    if (trans > 0)
+        out = out + Gs * Ds * (1 - trans * (1 - refract) * (1 - F));
+    else
+        out = out + Gs * Ds * Fs;
+    //printf("%f %f\n", cosThetaI,F);
+        //+ Gs * Ds * (1 - trans * F);// (1 - (1 - F));// *(1 - refract));
+        //+ 0.25f * mat.clearcoat * Gr * Fr * Dr;
     //printf("eval: %f,%f,%f\n", out.x, out.y, out.z);
     return out;
 }
@@ -1053,6 +1089,22 @@ RT_FUNCTION float3 Sample(const MaterialData::Pbr& mat, const float3& N, const f
     float r2 = rnd(seed);
     float3 dir;
     float3 normal = N;
+    /*
+    float r3 = rnd(seed);
+    if (r3 < 0.5)
+    {
+        Onb onb(normal); // basis
+        cosine_sample_hemisphere(r1, r2, dir);
+        onb.inverse_transform(dir);
+    }
+    else
+    {
+        Onb onb(-normal);
+        cosine_sample_hemisphere(r1, r2, dir);
+        onb.inverse_transform(dir);
+    }
+    return dir;
+    */
     float mateta = mat.eta;
     float eta = 1 / mateta;
     if (dot(normal, V) < 0)
@@ -1063,9 +1115,11 @@ RT_FUNCTION float3 Sample(const MaterialData::Pbr& mat, const float3& N, const f
     float NdotV = abs(dot(normal, V));
     float transRatio = mat.trans;
     float transprob = rnd(seed);
-    float refractRatio = 1 - fresnel(NdotV, NdotV, eta);
+    float refractRatio;
     float refractprob = rnd(seed);
-    if (transprob < transRatio && refractprob < refractRatio) // sample transmit
+    float probability = rnd(seed);
+    float diffuseRatio = 0.5f * (1.0f - mat.metallic);// *(1 - transRatio);
+    if (transprob < transRatio) // sample transmit
     {
         Onb onb(normal); // basis
         float a = mat.roughness;
@@ -1081,23 +1135,25 @@ RT_FUNCTION float3 Sample(const MaterialData::Pbr& mat, const float3& N, const f
 
         if (dot(V, normal) == 0) return -V;
 
-        float cosThetaI = dot(half, V);
+        float cosThetaI = NdotV;// dot(half, V);
         float sin2ThetaI = 1 - cosThetaI * cosThetaI;
         float sin2ThetaT = eta * eta * sin2ThetaI;
         if (sin2ThetaT < 1)
         {
             float cosThetaT = sqrt(1 - sin2ThetaT);
-            return  eta * -V + (eta * cosThetaI - cosThetaT) * half;
+            float3 L = eta * -V + (eta * cosThetaI - cosThetaT) * half;
+            float HdotV = abs(dot(half, V));
+            float HdotL = abs(dot(half,L));
+            float refractRatio = 1 - fresnel(NdotV, sqrt(1-sin2ThetaT), eta);
+            if(refractprob < refractRatio)
+                return  L;
         }
-        return half * 2 * dot(half, V) - V; // 全反射
-    }
-    if (dot(normal, V) < 0)
-    {
-        normal = -N;
+        else
+        {
+            return half * 2 * dot(half, V) - V; // 全反射
+        }
     }
     Onb onb(normal); // basis
-    float probability = rnd(seed);
-    float diffuseRatio = 0.5f * (1.0f - mat.metallic);// * (1 - transRatio);
 
     if (probability < diffuseRatio) // sample diffuse
     {
@@ -1130,7 +1186,7 @@ RT_FUNCTION float Pdf(MaterialData::Pbr& mat, float3 normal, float3 V, float3 L,
     if (mat.brdf)
         return 1.0f;// return abs(dot(L, normal));
 #endif
-
+    //return abs(dot(L, normal)) * (0.5f / M_PIf);
     float transRatio = mat.trans;
     float3 n = normal;
     float mateta = mat.eta;
@@ -1143,7 +1199,10 @@ RT_FUNCTION float Pdf(MaterialData::Pbr& mat, float3 normal, float3 V, float3 L,
     }
     float pdf;
     float NdotV = abs(dot(V, n));
-    float refractRatio = 1 - fresnel(NdotV, NdotV, eta);
+    float NdotL = abs(dot(L, n));
+    float3 wh = normalize(L + V * eta);
+    float HdotV = abs(dot(V, wh));
+    float HdotL = abs(dot(L, wh));
 
     float specularAlpha = mat.roughness;
     float clearcoatAlpha = lerp(0.1f, 0.001f, mat.clearcoatGloss);
@@ -1162,9 +1221,18 @@ RT_FUNCTION float Pdf(MaterialData::Pbr& mat, float3 normal, float3 V, float3 L,
     float pdfSpec = lerp(pdfGTR1, pdfGTR2, ratio) / (4.0 * abs(dot(L, half)));
     float pdfDiff = abs(dot(L, n)) * (1.0f / M_PIf);
 
-    pdf = (diffuseRatio * pdfDiff + specularRatio * pdfSpec);
+    float cosThetaI = dot(n, V);
+    float sin2ThetaI = 1 - cosThetaI * cosThetaI;
+    float sin2ThetaT = eta * eta * sin2ThetaI;
 
-    float3 wh = normalize(L + V * eta);
+    if (sin2ThetaT > 1) //全反射
+        pdf = (diffuseRatio * pdfDiff + specularRatio * pdfSpec);
+    else
+    {
+        float refractRatio = 1 - fresnel(NdotV, sqrt(1 - sin2ThetaT), eta);
+        pdf = (diffuseRatio * pdfDiff + specularRatio * pdfSpec) * (1 - transRatio * refractRatio);
+    }
+
     //if (dot(V, wh) * dot(L, wh) > 0) return 0;
 
     // Compute change of variables _dwh\_dwi_ for microfacet transmission
@@ -1174,10 +1242,11 @@ RT_FUNCTION float Pdf(MaterialData::Pbr& mat, float3 normal, float3 V, float3 L,
     float a = max(0.001f, mat.roughness);
     float Ds = GTR2(dot(wh, n), a);
     float pdfTrans = Ds * abs(dot(n, wh)) * dwh_dwi;
-
-    pdf += transRatio * pdfTrans * refractRatio;
-
-
+    if (sin2ThetaT <= 1) //全反射
+    {
+        float refractRatio = 1 - fresnel(NdotV, sqrt(1 - sin2ThetaT), eta);
+        pdf += transRatio * pdfTrans * refractRatio;
+    }
     return pdf;
 }
 

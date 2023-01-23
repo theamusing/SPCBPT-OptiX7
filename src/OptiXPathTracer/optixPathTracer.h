@@ -39,6 +39,15 @@
 #define DIR_JUDGE 0
 #define TRAIN_CAUSTIC_WEIGHT 10.0f
 
+//#define RENDER_PATHSHIFT
+//#define RENDER_SPCBPT
+#define RENDER_PT
+
+#define SCENE_NAME "house"
+
+#define SCREENCAPTURE_SAVE_MODE false
+#define ESTIMATION_MODE false
+
 //#define CAUSTIC_SPECIAL
 #include"whitted.h"
 #include"BDPTVertex.h"

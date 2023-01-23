@@ -107,5 +107,121 @@ namespace estimation
             return relmse / valid_pixels;
         } 
     }
+    float estimation_status::Mae_estimate(thrust::host_vector<float4> accm, const MyParams& params)
+    {
+        if (estimation_mode == false)
+        {
+            return 0.0;
+        }
+        if (params.width != ref_width || params.height != ref_height)
+        {
+            printf("Dismatch img size found in estimation\n");
+            printf("reference size width %d and height %d\n", ref_width, ref_height);
+            printf("actual rendering size width %d and height %d\n", params.width, params.height);
+            return 0;
+        }
+        else
+        {
+            float mae = 0.0;
+            float valid_pixels = 0;
+
+            float minLimit = 0.01;
+            for (int i = 0; i < ref_width * ref_height; i++)
+            {
+                float3 a = make_float3(accm[i]);
+                float3 b = make_float3(reference[i]);
+                if (b.x + b.y + b.z > 0)
+                    valid_pixels += 1;
+                float3 bias = a - b;
+                float3 r_bias = (a - b);
+                float error = (abs(r_bias.x) + abs(r_bias.y) + abs(r_bias.z)) / 3;
+                error = min(error, 100);
+                mae += error;
+            }
+            return mae / valid_pixels;
+        }
+    }
+    float estimation_status::Mape_estimate(thrust::host_vector<float4> accm, const MyParams& params)
+    {
+        if (estimation_mode == false)
+        {
+            return 0.0;
+        }
+        if (params.width != ref_width || params.height != ref_height)
+        {
+            printf("Dismatch img size found in estimation\n");
+            printf("reference size width %d and height %d\n", ref_width, ref_height);
+            printf("actual rendering size width %d and height %d\n", params.width, params.height);
+            return 0;
+        }
+        else
+        {
+            float relmse = 0.0;
+            float valid_pixels = 0;
+
+            float minLimit = 0.01;
+            for (int i = 0; i < ref_width * ref_height; i++)
+            {
+                float3 a = make_float3(accm[i]);
+                float3 b = make_float3(reference[i]);
+                if (b.x + b.y + b.z > 0)
+                    valid_pixels += 1;
+                float3 bias = a - b;
+                float3 r_bias = (a - b) / (b + make_float3(minLimit));
+                float error = (abs(r_bias.x) + abs(r_bias.y) + abs(r_bias.z)) / 3;
+                error = min(error, 100);
+                relmse += error;
+            }
+            return 100 * relmse / valid_pixels;
+        }
+    }
     estimation_status es(std::string(""), false); 
+
+    estimation_info::estimation_info()
+    {
+        this->scene = SCENE_NAME;
+
+#ifdef  RENDER_PATHSHIFT
+        this->algorithm = "PATHSHIFT";
+#else
+        this->algorithm = "SPCBPT";
+#endif
+#ifdef  RENDER_PT
+        this->algorithm = "PT";
+#endif
+
+        this->N_conn = 0;
+        this->N_subspace = 0;
+        this->M_lightpath = 0;
+        this->M_lightvertex = 0;
+        this->isIndirectOnly = 0;
+        this->useClassifier = 0;
+        this->subspaceDivTime = 0;
+        this->t0_strategy = 0;
+        if(ESTIMATION_MODE)
+        {
+            this->outFile.open("./data/" + this->scene + "_" + this->algorithm + ".txt");// modify
+            this->outFile << "{" << std::endl;
+            this->outFile << "\"scene\" : \"" << this->scene << "\"," << std::endl;
+            this->outFile << "\"algorithm\" : \"" << this->algorithm << "\"," << std::endl;
+            this->outFile << "\"N_conn\" : " << this->N_conn << "," << std::endl;
+            this->outFile << "\"N_subspace : " << this->N_subspace << "," << std::endl;
+            this->outFile << "\"M_lightvertex : " << this->M_lightvertex << "," << std::endl;
+            this->outFile << "\"M_lightpath : " << this->M_lightpath << "," << std::endl;
+            this->outFile << "\"isIndirectOnly : " << this->isIndirectOnly << "," << std::endl;
+            this->outFile << "\"useClassifier : " << this->useClassifier << "," << std::endl;
+            this->outFile << "\"subspaceDivTime : " << this->subspaceDivTime << "," << std::endl;
+            this->outFile << "\"t0_strategy : " << this->t0_strategy << std::endl;
+            this->outFile << "}" << std::endl;
+        }
+    }
+    void estimation_info::add(int frameId, float time, float Mse, float Mae, float Mape)
+    {
+        this->outFile << frameId << " " << time << " " << Mse << " " << Mae << " " << Mape << "%" << std::endl;
+    }
+    void estimation_info::close()
+    {
+        this->outFile.close();
+    }
+    estimation_info es_info;
 }

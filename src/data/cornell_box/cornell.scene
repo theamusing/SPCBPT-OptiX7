@@ -31,8 +31,8 @@ material Mirror
 material Glass
 {
    color 0.9 0.9 0.9
-   roughness 0.05
-   metallic 0.0
+   roughness 0.001
+   metallic 1.0
    
    trans 1.0
    eta 1.5
@@ -61,7 +61,7 @@ mesh
 {
 #	file cornell_box/cbox_smallbox.obj
 	file cornell_box/cbox_small_sphere.obj
-	material Glass
+	material Mirror
 }
 
 mesh

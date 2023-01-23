@@ -1460,8 +1460,11 @@ void Scene::createProgramGroups()
         OptixProgramGroupDesc SPCBPT_groups_desc[progTypeNum] = {};
         SPCBPT_groups_desc[rayGenProg].kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
         SPCBPT_groups_desc[rayGenProg].raygen.module = m_ptx_module;
+#ifdef RENDER_PATHSHIFT
         SPCBPT_groups_desc[rayGenProg].raygen.entryFunctionName = "__raygen__shift_combine";
-//        SPCBPT_groups_desc[rayGenProg].raygen.entryFunctionName = "__raygen__SPCBPT_no_rmis";
+#else 
+        SPCBPT_groups_desc[rayGenProg].raygen.entryFunctionName = "__raygen__SPCBPT_no_rmis";
+#endif
 //        SPCBPT_groups_desc[rayGenProg].raygen.entryFunctionName = "__raygen__glossy_shift_only";
         SPCBPT_groups_desc[missProg].kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
         SPCBPT_groups_desc[missProg].miss.module = m_ptx_module;
