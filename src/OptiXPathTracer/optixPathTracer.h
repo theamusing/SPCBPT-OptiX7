@@ -39,11 +39,11 @@
 #define DIR_JUDGE 0
 #define TRAIN_CAUSTIC_WEIGHT 10.0f
 
-//#define RENDER_PATHSHIFT
+#define RENDER_PATHSHIFT
 //#define RENDER_SPCBPT
-#define RENDER_PT
+//#define RENDER_PT
 
-#define SCENE_NAME "house"
+#define SCENE_NAME "bedroom"
 
 #define SCREENCAPTURE_SAVE_MODE false
 #define ESTIMATION_MODE false
