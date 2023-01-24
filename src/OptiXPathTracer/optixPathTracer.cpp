@@ -620,7 +620,7 @@ void preprocessing(sutil::Scene& scene)
     auto h_eye_tree = classTree::buildTreeBaseOnExistSample()(unlabeled_samples, min(300, NUM_SUBSPACE), 0);
 
     unlabeled_samples = MyThrustOp::get_weighted_point_for_tree_building(false, 10000);
-    auto h_light_tree = classTree::buildTreeBaseOnExistSample()(unlabeled_samples, min(500, NUM_SUBSPACE - NUM_SUBSPACE_LIGHTSOURCE), 0);
+    auto h_light_tree = classTree::buildTreeBaseOnExistSample()(unlabeled_samples, min(300, NUM_SUBSPACE - NUM_SUBSPACE_LIGHTSOURCE), 0);
 
     auto d_DecisionTree = MyThrustOp::eye_tree_to_device(h_eye_tree.v, h_eye_tree.size);
     subspaceInfo.eye_tree = d_DecisionTree;
@@ -781,12 +781,14 @@ int main( int argc, char* argv[] )
 
     try
     {
-//        string scenePath = string(SAMPLES_DIR) + "/data/" + string(SCENE_NAME) + "/" + string(SCENE_NAME) + ".scene";
-        string scenePath = string(SAMPLES_DIR) + string("/data/house/house_uvrefine2.scene"); 
-//         string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_icoBall.scene");
-//         string scenePath = string(SAMPLES_DIR) + string("/data/livingroom/livingroom.scene");
-//        string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_refract.scene");
+                 string scenePath = string(SAMPLES_DIR) + string("/data/bedroom.scene");
+        //string scenePath = string(SAMPLES_DIR) + string("/data/breafast_2.0/breafast_3.0.scene");
+
+
+//        string scenePath = string(SAMPLES_DIR) + string("/data/house/house_uvrefine2.scene"); 
+//         string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_test.scene");
 //         string scenePath = string(SAMPLES_DIR) + string("/data/water/simple.scene");
+//         string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_refract.scene");
 //         string scenePath = string(SAMPLES_DIR) + string("/data/glossy_kitchen/glossy_kitchen.scene");
 //        string scenePath = string(SAMPLES_DIR) + string("/data/glassroom/glassroom_simple.scene");
 //        string scenePath = string(SAMPLES_DIR) + string("/data/hallway/hallway_env2.scene");
@@ -895,7 +897,7 @@ int main( int argc, char* argv[] )
                         sutil::saveImage(path.c_str(), outputbuffer, true);
                     }
 
-                    estimation::es.estimation_mode = ESTIMATION_MODE;
+                    //estimation::es.estimation_mode = false;
                     if (estimation::es.estimation_mode == true)
                     {
                         float relMse = estimation::es.relMse_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
