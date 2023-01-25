@@ -209,6 +209,11 @@ struct subspaceMacroInfo
         }// Gamma[eye_id * NUM_SUBSPACE + light_id] / Q[light_id];
         return 1;
     }
+}; 
+struct EstimationParams
+{
+    float4* ref_buffer;
+    int pre_trace_frame;
 };
 struct PTParams :whitted::LaunchParams
 {
@@ -217,6 +222,8 @@ struct PTParams :whitted::LaunchParams
     PreTraceParams pre_tracer;
     subspaceMacroInfo subspace_info;
     envInfo sky;
+    EstimationParams estimate_pr;
+
 };
 typedef PTParams MyParams;
 
