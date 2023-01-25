@@ -101,7 +101,7 @@ namespace estimation
                 float3 r_bias = (a - b) / (b + make_float3(minLimit));
                 float3 sqaure_rbias = r_bias * r_bias; 
                 float error = (abs(sqaure_rbias.x) + abs(sqaure_rbias.y) + abs(sqaure_rbias.z)) / 3; 
-                error = min(error, 100);
+                error = min(error, 10000);
                 relmse += error;
             }
             return relmse / valid_pixels;
@@ -135,7 +135,7 @@ namespace estimation
                 float3 bias = a - b;
                 float3 r_bias = (a - b);
                 float error = (abs(r_bias.x) + abs(r_bias.y) + abs(r_bias.z)) / 3;
-                error = min(error, 100);
+                error = min(error, 10000);
                 mae += error;
             }
             return mae / valid_pixels;
@@ -169,7 +169,7 @@ namespace estimation
                 float3 bias = a - b;
                 float3 r_bias = (a - b) / (b + make_float3(minLimit));
                 float error = (abs(r_bias.x) + abs(r_bias.y) + abs(r_bias.z)) / 3;
-                error = min(error, 100);
+                error = min(error, 10000);
                 relmse += error;
             }
             return 100 * relmse / valid_pixels;

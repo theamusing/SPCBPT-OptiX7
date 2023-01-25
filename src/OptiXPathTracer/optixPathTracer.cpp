@@ -781,8 +781,8 @@ int main( int argc, char* argv[] )
 
     try
     {
-                 string scenePath = string(SAMPLES_DIR) + string("/data/bedroom/bedroom.scene");
-//        string scenePath = string(SAMPLES_DIR) + string("/data/breafast_2.0/breafast_3.0.scene");
+//                 string scenePath = string(SAMPLES_DIR) + string("/data/bedroom/bedroom.scene");
+        string scenePath = string(SAMPLES_DIR) + string("/data/breafast_2.0/breafast_3.0.scene");
 
 
 //        string scenePath = string(SAMPLES_DIR) + string("/data/house/house_uvrefine2.scene"); 
@@ -830,7 +830,12 @@ int main( int argc, char* argv[] )
         //pre tracing
         { 
             handleCameraUpdate(params);
+            std::chrono::duration<double> prepocessing_time(0.0);
+            auto t0 = std::chrono::steady_clock::now();
             preprocessing(TScene);
+            auto t1 = std::chrono::steady_clock::now();
+            prepocessing_time = t1 - t0;
+            printf("prepocessing time: %f\n", prepocessing_time.count());
         }
 
         if(false)
@@ -894,7 +899,7 @@ int main( int argc, char* argv[] )
                     printf("render_fps %f\n", render_fps);
                     glfwSwapBuffers(window);
 
-                    if (SCREENCAPTURE_SAVE_MODE)
+                    if (SCREENCAPTURE_SAVE_MODE && params.subframe_index % SCREENCAPTRUE_DELTAFRAME == 0)
                     {
                         sutil::ImageBuffer outputbuffer;
 
@@ -907,13 +912,14 @@ int main( int argc, char* argv[] )
                         sutil::saveImage(path.c_str(), outputbuffer, true);
                     }
 
-                    estimation::es.estimation_mode = false;
+                    estimation::es.estimation_mode = ESTIMATION_MODE;
                     if (estimation::es.estimation_mode == true)
                     {
                         float relMse = estimation::es.relMse_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
                         float Mae = estimation::es.Mae_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
                         float Mape = estimation::es.Mape_estimate(MyThrustOp::copy_to_host(params.accum_buffer, params.width * params.height), params);
                         estimation::es_info.add(params.subframe_index,render_time_duration, relMse, Mae, Mape);
+                        printf("add frame %d\n", params.subframe_index);
                     }
                     else
                     {
