@@ -781,13 +781,15 @@ int main( int argc, char* argv[] )
 
     try
     {
-//                 string scenePath = string(SAMPLES_DIR) + string("/data/bedroom/bedroom.scene");
-        string scenePath = string(SAMPLES_DIR) + string("/data/breafast_2.0/breafast_3.0.scene");
+//                 string scenePath = string(SAMPLES_DIR) + string("/data/bedroom.scene");
+        //string scenePath = string(SAMPLES_DIR) + string("/data/breafast_2.0/breafast_3.0.scene");
+//        string scenePath = string(SAMPLES_DIR) + string("/data/bathroom/bathroom.scene");
+//        string scenePath = string(SAMPLES_DIR) + string("/data/bathroom_b/scene_v3.scene");
 
 
 //        string scenePath = string(SAMPLES_DIR) + string("/data/house/house_uvrefine2.scene"); 
 //         string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_test.scene");
-//         string scenePath = string(SAMPLES_DIR) + string("/data/water/simple.scene");
+         string scenePath = string(SAMPLES_DIR) + string("/data/water/simple.scene");
 //         string scenePath = string(SAMPLES_DIR) + string("/data/cornell_box/cornell_refract.scene");
 //         string scenePath = string(SAMPLES_DIR) + string("/data/glossy_kitchen/glossy_kitchen.scene");
 //        string scenePath = string(SAMPLES_DIR) + string("/data/glassroom/glassroom_simple.scene");
@@ -832,7 +834,7 @@ int main( int argc, char* argv[] )
             handleCameraUpdate(params);
             std::chrono::duration<double> prepocessing_time(0.0);
             auto t0 = std::chrono::steady_clock::now();
-            preprocessing(TScene);
+            //preprocessing(TScene);
             auto t1 = std::chrono::steady_clock::now();
             prepocessing_time = t1 - t0;
             printf("prepocessing time: %f\n", prepocessing_time.count());

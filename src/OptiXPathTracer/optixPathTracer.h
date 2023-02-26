@@ -40,14 +40,15 @@
 #define TRAIN_CAUSTIC_WEIGHT 10.0f
 
 //#define RENDER_PATHSHIFT
-#define RENDER_SPCBPT
-//#define RENDER_PT
+//#define RENDER_SPCBPT
+#define RENDER_PT
 
-#define SCENE_NAME "breakfast"
+#define SCENE_NAME "water"
 
 #define SCREENCAPTURE_SAVE_MODE false
-#define SCREENCAPTRUE_DELTAFRAME 6 
+#define SCREENCAPTRUE_DELTAFRAME 1 
 #define ESTIMATION_MODE false
+#define RMIS_FLAG true
 
 //#define CAUSTIC_SPECIAL
 #include"whitted.h"

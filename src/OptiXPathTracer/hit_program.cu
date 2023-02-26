@@ -10,7 +10,7 @@
 #include "cuProg.h"
 #include "rmis.h"
 
-//#define PT_BRDF_STRATEGY_ONLY
+#define PT_BRDF_STRATEGY_ONLY
 //#define PT_NEE_STRATEGY_ONLY
 
 extern "C" __global__ void __anyhit__radiance()
@@ -166,7 +166,7 @@ extern "C" __global__ void __closesthit__lightsource()
     float3 ray_direction = optixGetWorldRayDirection();
 
     if (dot(prd->ray_direction, light_sample.normal()) <= 0
-        && (prd->depth == 0 || prd->depth <= 6)
+        && (prd->depth == 0 || prd->depth <= 10)
 #ifdef CAUSTIC_SPECIAL
         && (prd->depth == 0 || prd->depth <= 5)
        // && (prd->depth != 2)
@@ -582,7 +582,7 @@ extern "C" __global__ void __closesthit__radiance()
             {
                 prd->vis_pos_A = geom.P;
                 prd->vis_pos_B = light_sample.position;
-                float3 eval = Tracer::Eval(currentPbr, N, L, V);
+                float3 eval = Tracer::Eval(currentPbr, N, V, L);// modified
 
                 float MIS_weight = 1;
                 {
@@ -615,7 +615,7 @@ extern "C" __global__ void __closesthit__radiance()
             prd->vis_pos_A = geom.P;
             prd->vis_pos_B = geom.P + light_sample.direction * SKY.r * 10;
 //            printf("light_sample dir %f %f %f\n", light_sample.direction.x, light_sample.direction.y, light_sample.direction.z);
-            float3 eval = Tracer::Eval(currentPbr, N, L, V);
+            float3 eval = Tracer::Eval(currentPbr, N, V,L);// modified
             result += prd->throughput * light_sample.emission / light_sample.pdf * eval * L_dot_N;
         }
 
@@ -629,7 +629,7 @@ extern "C" __global__ void __closesthit__radiance()
     //prd->depth += 1;  
     //prd->result += result;
 
-    if (prd->depth > 5) result *= 0;
+    if (prd->depth > 10) result *= 0;
     prd->currentResult += result;
     
     prd->origin = geom.P;
@@ -645,7 +645,7 @@ extern "C" __global__ void __closesthit__radiance()
 
         if (isRefract(N, in_dir, prd->ray_direction) && prd->depth == 1 && dot(in_dir, N) > 0 && Shift::glossy(currentPbr))
         {
-            float3 bsdf = Tracer::Eval(currentPbr, N, prd->ray_direction, in_dir);
+            //float3 bsdf = Tracer::Eval(currentPbr, N, in_dir, prd->ray_direction);// modified
             float cos_in = abs(dot(in_dir, N));
             float cos_out = abs(dot(prd->ray_direction, N));
             float sin_in = sqrt(1 - cos_in * cos_in);
@@ -655,8 +655,8 @@ extern "C" __global__ void __closesthit__radiance()
         }
         if (pdf > 0.0f)
         {
-            prd->throughput *= Tracer::Eval(currentPbr, N, prd->ray_direction, in_dir) * abs(dot(prd->ray_direction, N)) / pdf / rr_rate;
-            prd->pdf = pdf * rr_rate;
+            prd->throughput *= Tracer::Eval(currentPbr, N, in_dir, prd->ray_direction) * abs(dot(prd->ray_direction, N)) / pdf / rr_rate;
+            prd->pdf = pdf * rr_rate;// modified
         }
         else
         {
